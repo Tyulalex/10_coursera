@@ -1,0 +1,5 @@
+courses_url: "https://www.coursera.org/sitemap~www~courses.xml"
+namespace_mapping:
+    urlset: http://www.sitemaps.org/schemas/sitemap/0.9
+filepath: "courses.xlsx"
+
