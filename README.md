@@ -6,7 +6,9 @@ the script parse 20 courses and get name, start date, description, rating, descr
 
 # System requirements
 required python 3.5 installed
+```
 pip install -r requirements.txt
+```
 
 # How to install and run
 
