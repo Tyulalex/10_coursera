@@ -56,16 +56,17 @@ class Course:
 
 def fetch_data(url, default_response=None):
     attempt = 0
-    try:
-        response = requests.get(url, verify=False)
-        return response.text
-    except Exception as err:
-        logger.warning(err)
+    response = requests.get(url, verify=False)
+    if not response.ok:
+        logger.warning(
+            "response status code not ok {}".format(
+                response.status_code))
         attempt += 1
         if attempt:
             time.sleep(30)
             return fetch_data(url)
         return default_response
+    return response.text
 
 
 def load_config():
@@ -77,7 +78,7 @@ def load_courses(courses_url):
     return fetch_data(courses_url, default_response=[])
 
 
-def filter_courses(course_data, namespace_mapping, courses_amount=20):
+def filter_courses(course_data, namespace_mapping, courses_amount):
     root = ElementTree.fromstring(course_data)
     courses = list(map(lambda x: x.getchildren()[0].text,
                        root.findall('urlset:url', namespace_mapping)))
@@ -127,7 +128,8 @@ if __name__ == '__main__':
     logger = get_logger()
     config = load_config()
     courses_list = filter_courses(load_courses(config['courses_url']),
-                                  config['namespace_mapping'])
+                                  config['namespace_mapping'],
+                                  config['courses_amount'])
     if courses_list:
         wb = create_workbook()
         fill_workbook(wb, courses_list)
