@@ -19,7 +19,7 @@ on windows:
 ```
 on linux might require 
 ```
-  python3 image_resize.py
+  python3 coursera.py
 ```
 
 Supported Systems: Windows, Unix
