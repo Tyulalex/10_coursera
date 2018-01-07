@@ -56,6 +56,7 @@ class Course:
 
 def fetch_data(url, default_response=None):
     attempt = 0
+    sleep_time = 30
     response = requests.get(url, verify=False)
     if not response.ok:
         logger.warning(
@@ -63,7 +64,7 @@ def fetch_data(url, default_response=None):
                 response.status_code))
         attempt += 1
         if attempt:
-            time.sleep(30)
+            time.sleep(sleep_time)
             return fetch_data(url)
         return default_response
     return response.text
