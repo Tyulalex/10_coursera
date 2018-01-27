@@ -8,39 +8,34 @@ from openpyxl import Workbook
 
 
 class Course:
-    def __init__(self, url):
-        self.soup = BeautifulSoup(fetch_data(url), 'html.parser')
-        self.url = url
+    def __init__(self, req_response):
+        self.soup = BeautifulSoup(req_response.text, 'html.parser')
+        self.url = req_response.url
 
     @property
     def course_name(self):
         attribute = {"class": "title display-3-text"}
-        return getattr(self.soup.find("h1", attrs=attribute),
-                       'text', '-').encode('utf-8')
+        return getattr(
+            self.soup.find("h1", attrs=attribute), 'text', '-').encode('utf-8')
 
     @property
     def lang(self):
         attribute = {"class": "language-info"}
-        return getattr(self.soup.find("div", attrs=attribute),
-                       'text', '-')
+        return getattr(self.soup.find("div", attrs=attribute), 'text', '-')
 
     @property
     def duration(self):
-        commitment_element = self.soup.find(
-            "span", text="Commitment")
+        commitment_element = self.soup.find("span", text="Commitment")
         if commitment_element:
-            return commitment_element.parent.\
-                nextSibling.text
+            return commitment_element.parent.nextSibling.text
         return '-'
 
     @property
     def rating(self):
-        rating_element_attr = {
-            "class": "ratings-text bt3-visible-xs"
-        }
+        rating_element_attr = {"class": "ratings-text bt3-visible-xs"}
         return getattr(
-            self.soup.find(
-                "div", attrs=rating_element_attr), 'text', '-')
+            self.soup.find("div", attrs=rating_element_attr), 'text', '-'
+        )
 
     @property
     def start_date(self):
@@ -48,26 +43,25 @@ class Course:
             "class": "startdate rc-StartDateString caption-text"
         }
         return getattr(
-            self.soup.find(
-                "div", attrs=start_date_attr), 'text', '-').\
-            replace("Starts ", "").\
-            replace("Started ", "").encode('utf-8')
+            self.soup.find("div", attrs=start_date_attr),
+            'text',
+            '-'
+        ).replace("Starts ", "").\
+            replace("Started ", "").\
+            encode('utf-8')
 
 
-def fetch_data(url, default_response=None):
-    attempt = 0
+def send_get_request(url, attempts=2):
     sleep_time = 30
     response = requests.get(url, verify=False)
     if not response.ok:
         logger.warning(
-            "response status code not ok {}".format(
-                response.status_code))
-        attempt += 1
-        if attempt:
+            "response status code not ok {}".format(response.status_code)
+        )
+        if attempts:
             time.sleep(sleep_time)
-            return fetch_data(url)
-        return default_response
-    return response.text
+            return send_get_request(url, attempts=attempts - 1)
+    return response
 
 
 def load_config():
@@ -75,14 +69,12 @@ def load_config():
         return yaml.load(config)
 
 
-def load_courses(courses_url):
-    return fetch_data(courses_url, default_response=[])
-
-
 def filter_courses(course_data, namespace_mapping, courses_amount):
     root = ElementTree.fromstring(course_data)
-    courses = list(map(lambda x: x.getchildren()[0].text,
-                       root.findall('urlset:url', namespace_mapping)))
+    courses = list(
+        map(lambda x: x.getchildren()[0].text,
+            root.findall('urlset:url', namespace_mapping))
+    )
     return courses[:courses_amount]
 
 
@@ -97,9 +89,15 @@ def write_course_row(ws, row, course):
 
 def write_course_column(ws):
     columns_name = (
-        'Name', 'Start Date', 'Languages', 'Duration', 'Rating', 'Url')
-    for col in range(1, len(columns_name) + 1):
-        ws.cell(column=col, row=1, value=columns_name[col - 1])
+        'Name',
+        'Start Date',
+        'Languages',
+        'Duration',
+        'Rating',
+        'Url'
+    )
+    for i, col in enumerate(columns_name):
+        ws.cell(column=i + 1, row=1, value=col)
 
 
 def save_workbook(wb, filepath):
@@ -113,11 +111,16 @@ def create_workbook():
     return wb
 
 
+def load_courses_data(courses_url):
+    for i, course_url in enumerate(courses_url):
+        yield Course(send_get_request(course_url))
+
+
 def fill_workbook(wb, courses_url):
     write_course_column(wb.active)
-    for i, course_url in enumerate(courses_url):
-        course = Course(course_url)
-        write_course_row(wb.active, i + 2, course)
+    courses_data = load_courses_data(courses_url)
+    for i, course_data in enumerate(courses_data):
+        write_course_row(wb.active, i + 2, course_data)
 
 
 def get_logger():
@@ -128,9 +131,11 @@ def get_logger():
 if __name__ == '__main__':
     logger = get_logger()
     config = load_config()
-    courses_list = filter_courses(load_courses(config['courses_url']),
-                                  config['namespace_mapping'],
-                                  config['courses_amount'])
+    courses_list = filter_courses(
+        course_data=send_get_request(config['courses_url']).text,
+        namespace_mapping=config['namespace_mapping'],
+        courses_amount=config['courses_amount']
+    )
     if courses_list:
         wb = create_workbook()
         fill_workbook(wb, courses_list)
