@@ -8,47 +8,51 @@ from openpyxl import Workbook
 
 
 class Course:
-    def __init__(self, req_response):
-        self.soup = BeautifulSoup(req_response.text, 'html.parser')
-        self.url = req_response.url
+
+    _default_attr_value = '-'
+
+    def __init__(self, raw_course_text, course_url):
+        self.soup = BeautifulSoup(raw_course_text, 'html.parser')
+        self.url = course_url
 
     @property
     def course_name(self):
         attribute = {"class": "title display-3-text"}
-        return getattr(
-            self.soup.find("h1", attrs=attribute), 'text', '-').encode('utf-8')
+        course_name_element = self.soup.find("h1", attrs=attribute)
+        return course_name_element.text if course_name_element\
+            else self._default_attr_value
 
     @property
     def lang(self):
         attribute = {"class": "language-info"}
-        return getattr(self.soup.find("div", attrs=attribute), 'text', '-')
+        lang_element = self.soup.find("div", attrs=attribute)
+        return lang_element.text if lang_element else self._default_attr_value
 
     @property
     def duration(self):
         commitment_element = self.soup.find("span", text="Commitment")
         if commitment_element:
             return commitment_element.parent.nextSibling.text
-        return '-'
+        return self._default_attr_value
 
     @property
     def rating(self):
         rating_element_attr = {"class": "ratings-text bt3-visible-xs"}
-        return getattr(
-            self.soup.find("div", attrs=rating_element_attr), 'text', '-'
-        )
+        rating_element = self.soup.find("div", attrs=rating_element_attr)
+        return rating_element.text if rating_element \
+            else self._default_attr_value
 
     @property
     def start_date(self):
         start_date_attr = {
             "class": "startdate rc-StartDateString caption-text"
         }
-        return getattr(
-            self.soup.find("div", attrs=start_date_attr),
-            'text',
-            '-'
-        ).replace("Starts ", "").\
-            replace("Started ", "").\
-            encode('utf-8')
+        start_date_element = self.soup.find("div", attrs=start_date_attr)
+        if start_date_element:
+            return start_date_element.text.\
+                replace("Starts ", "").\
+                replace("Started ", "")
+        return self._default_attr_value
 
 
 def send_get_request(url, attempts=2):
@@ -94,7 +98,7 @@ def write_course_column(ws):
         'Languages',
         'Duration',
         'Rating',
-        'Url'
+        'Url',
     )
     for i, col in enumerate(columns_name):
         ws.cell(column=i + 1, row=1, value=col)
@@ -113,7 +117,8 @@ def create_workbook():
 
 def load_courses_data(courses_url):
     for i, course_url in enumerate(courses_url):
-        yield Course(send_get_request(course_url))
+        course_response = send_get_request(course_url)
+        yield Course(course_response.text, course_url)
 
 
 def fill_workbook(wb, courses_url):
