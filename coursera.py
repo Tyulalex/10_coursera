@@ -15,53 +15,52 @@ class Course:
 
     @property
     def course_name(self):
-        attribute = {"class": "title display-3-text"}
-        course_name_element = self.soup.find("h1", attrs=attribute)
+        attribute = {'class': 'title display-3-text'}
+        course_name_element = self.soup.find('h1', attrs=attribute)
         if course_name_element:
             return course_name_element.text
 
     @property
     def lang(self):
-        attribute = {"class": "language-info"}
-        lang_element = self.soup.find("div", attrs=attribute)
+        attribute = {'class': 'language-info'}
+        lang_element = self.soup.find('div', attrs=attribute)
         if lang_element:
             return lang_element.text
 
     @property
     def duration(self):
-        commitment_element = self.soup.find("span", text="Commitment")
+        commitment_element = self.soup.find('span', text='Commitment')
         if commitment_element:
             return commitment_element.parent.nextSibling.text
 
     @property
     def rating(self):
-        rating_element_attr = {"class": "ratings-text bt3-visible-xs"}
-        rating_element = self.soup.find("div", attrs=rating_element_attr)
+        rating_element_attr = {'class': 'ratings-text bt3-visible-xs'}
+        rating_element = self.soup.find('div', attrs=rating_element_attr)
         if rating_element:
             return rating_element.text
 
     @property
     def start_date(self):
         start_date_attr = {
-            "class": "startdate rc-StartDateString caption-text"
+            'class': 'startdate rc-StartDateString caption-text'
         }
-        start_date_element = self.soup.find("div", attrs=start_date_attr)
+        start_date_element = self.soup.find('div', attrs=start_date_attr)
         if start_date_element:
-            return start_date_element.text.\
-                replace("Starts ", "").\
-                replace("Started ", "")
+            return start_date_element.text.replace(
+                'Starts ', '').replace('Started ', '')
 
 
-def send_get_request(url, attempts=2):
+def fetch_data(url, attempts=2):
     sleep_time = 30
     response = requests.get(url, verify=False)
     if not response.ok:
         logger.warning(
-            "response status code not ok {}".format(response.status_code)
+            'response status code not ok {}'.format(response.status_code)
         )
         if attempts:
             time.sleep(sleep_time)
-            return send_get_request(url, attempts=attempts - 1)
+            return fetch_data(url, attempts=attempts - 1)
     return response
 
 
@@ -70,7 +69,7 @@ def load_config():
         return yaml.load(config)
 
 
-def filter_courses(course_data, namespace_mapping, courses_amount):
+def fetch_courses(course_data, namespace_mapping, courses_amount):
     root = ElementTree.fromstring(course_data)
     courses = list(
         map(lambda x: x.getchildren()[0].text,
@@ -115,7 +114,7 @@ def create_workbook():
 
 def load_courses_data(courses_url):
     for course_url in courses_url:
-        course_response = send_get_request(course_url)
+        course_response = fetch_data(course_url)
         yield Course(course_response.text, course_url)
 
 
@@ -134,8 +133,8 @@ def get_logger():
 if __name__ == '__main__':
     logger = get_logger()
     config = load_config()
-    courses_list = filter_courses(
-        course_data=send_get_request(config['courses_url']).text,
+    courses_list = fetch_courses(
+        course_data=fetch_data(config['courses_url']).text,
         namespace_mapping=config['namespace_mapping'],
         courses_amount=config['courses_amount']
     )
@@ -143,4 +142,4 @@ if __name__ == '__main__':
         wb = create_workbook()
         fill_workbook(wb, courses_list)
         save_workbook(wb, config['filepath'])
-    logger.info("Script has finished it's work")
+    logger.info('Script has finished it\'s work')
