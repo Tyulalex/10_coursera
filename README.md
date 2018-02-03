@@ -1,33 +1,36 @@
 # Coursera Dump
 
-the script parse 20 courses and get name, start date, description, rating, description,
- language and write it to xlsx file
+the script parses 20 courses and gets courses' name, start date, description, rating, description,
+ language and writes this data to xlsx file
 
 
 # System requirements
-required python 3.5 installed
+
+ required python 3.5 installed
+
+# How to install and run
+
+installation:
+ 
+ execute: 
+
 ```
 pip install -r requirements.txt
 ```
 
-# How to install and run
-
 to run it: 
 on windows:
 ```
-    python coursera.py
+python coursera.py
 ```
 on linux might require 
 ```
-  python3 coursera.py
+python3 coursera.py
 ```
-
-Supported Systems: Windows, Unix
-python coursera.py
 
 there is config.yaml file where some configuration defined
 filepath - where to save xlsx file
-courses_url - source of courses url
+courses_url - source of courses url from where course url will be retrieved and parse
 
 # Project Goals
 

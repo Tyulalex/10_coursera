@@ -69,7 +69,7 @@ def load_config():
         return yaml.load(config)
 
 
-def fetch_courses(course_data, namespace_mapping, courses_amount):
+def fetch_courses_urls_list(course_data, namespace_mapping, courses_amount):
     root = ElementTree.fromstring(course_data)
     courses = list(
         map(lambda x: x.getchildren()[0].text,
@@ -133,7 +133,7 @@ def get_logger():
 if __name__ == '__main__':
     logger = get_logger()
     config = load_config()
-    courses_list = fetch_courses(
+    courses_list = fetch_courses_urls_list(
         course_data=fetch_data(config['courses_url']).text,
         namespace_mapping=config['namespace_mapping'],
         courses_amount=config['courses_amount']
